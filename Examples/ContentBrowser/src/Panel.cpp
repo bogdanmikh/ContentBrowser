@@ -2,6 +2,14 @@
 #include "Panel.hpp"
 
 #include <imgui.h>
+#include <fstream>
+#ifdef PLATFORM_LINUX
+#    include "SystemTools/LinuxTools.hpp"
+#elif PLATFORM_MACOS
+#    include "SystemTools/MacOSTools.hpp"
+#elif PLATFORM_WINDOWS
+#    include "SystemTools/WindowsTools.hpp"
+#endif
 
 Panel::~Panel() {
     delete m_defaultFileIcon;
@@ -9,6 +17,7 @@ Panel::~Panel() {
     for (const auto &icon : m_fileIcons) {
         delete icon.second;
     }
+    delete m_systemTools;
 }
 
 static std::string getString(const char8_t *ptr) {
@@ -18,10 +27,37 @@ static std::string getString(const char8_t *ptr) {
 void Panel::start() {
     m_baseDirectory = std::filesystem::current_path();
     m_currentDirectory = std::filesystem::current_path();
-    m_defaultFileIcon = new Texture("Icons/FileIcon.png");
+    m_defaultFileIcon = new Texture("Icons/_blank.png");
     m_directoryIcon = new Texture("Icons/DirectoryIcon.png");
-    m_fileIcons.emplace(".cpp", new Texture("Icons/Cpp.png"));
+    m_fileIcons.emplace(".cpp", new Texture("Icons/hpp.png"));
+    m_fileIcons.emplace(".hpp", new Texture("Icons/cpp.png"));
+    m_fileIcons.emplace(".h", new Texture("Icons/h.png"));
+    m_fileIcons.emplace(".c", new Texture("Icons/c.png"));
+    m_fileIcons.emplace(".mp3", new Texture("Icons/mp3.png"));
+    m_fileIcons.emplace(".mp4", new Texture("Icons/mp4.png"));
+    m_fileIcons.emplace(".wav", new Texture("Icons/wav.png"));
+    m_fileIcons.emplace(".png", new Texture("Icons/png.png"));
+    m_fileIcons.emplace(".sql", new Texture("Icons/sql.png"));
+    m_fileIcons.emplace(".txt", new Texture("Icons/txt.png"));
+    m_fileIcons.emplace(".yml", new Texture("Icons/yml.png"));
+    m_fileIcons.emplace(".jpg", new Texture("Icons/jpg.png"));
+    m_fileIcons.emplace(".html", new Texture("Icons/html.png"));
+#ifdef PLATFORM_LINUX
+    m_systemTools = new LinuxTools;
+#elif PLATFORM_MACOS
+    m_systemTools = new MacOSTools;
+#elif PLATFORM_WINDOWS
+    m_systemTools = new WindowsTools;
+#endif
 }
+
+bool isMouseInsideWindow(ImVec2 windowPos, ImVec2 windowSize) {
+    ImVec2 maxSize = windowPos;
+    maxSize.x += windowSize.x;
+    maxSize.y += windowSize.y;
+    return ImGui::IsMouseHoveringRect(windowPos, maxSize);
+}
+
 void Panel::onImGuiRender() {
     ImGui::Begin("Content Browser");
     if (m_currentDirectory != std::filesystem::path(m_baseDirectory)) {
@@ -36,9 +72,22 @@ void Panel::onImGuiRender() {
     float panelWidth = ImGui::GetContentRegionAvail().x;
     int columnCount = (int)(panelWidth / cellSize);
     columnCount = std::max(columnCount, 1);
+    if (!Events::getDropPaths().empty()) {
+        if (isMouseInsideWindow(ImGui::GetWindowPos(), ImGui::GetWindowSize())) {
+            const auto &dropPaths = Events::getDropPaths();
+            for (const auto &dropPath : dropPaths) {
+                if (std::filesystem::is_directory(dropPath)) {
+                    m_systemTools->copyFolder(dropPath, m_currentDirectory.string());
+                    LOG_INFO("COPY DIR THIS: {}, THERE: {}", dropPath, m_currentDirectory.string());
+                } else {
+                    std::filesystem::copy(dropPath, m_currentDirectory);
+                    LOG_INFO("COPY FILE THIS: {}, THERE: {}", dropPath, m_currentDirectory.string());
+                }
+            }
+        }
+    }
 
     ImGui::Columns(columnCount, 0, false);
-
     for (auto &directoryEntry : std::filesystem::directory_iterator(m_currentDirectory)) {
         const auto &path = directoryEntry.path();
         std::string filenameString = path.filename().string();
@@ -66,13 +115,16 @@ void Panel::onImGuiRender() {
                 m_currentDirectory /= path.filename();
             }
         }
-        ImGui::TextWrapped(filenameString.c_str());
+        if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) &&
+            !is_directory(path)) {
+            m_systemTools->open(path);
+        }
+        ImGui::TextWrapped("%s", filenameString.c_str());
         ImGui::NextColumn();
         ImGui::PopID();
     }
     ImGui::Columns(1);
     ImGui::SliderFloat("Thumbnail Size", &thumbnailSize, 16, 512);
     ImGui::SliderFloat("Padding", &padding, 0, 32);
-    // TODO: status bar
     ImGui::End();
 }

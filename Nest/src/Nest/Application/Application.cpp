@@ -63,6 +63,7 @@ void Application::loop() {
         }
         ImGui_EndFrame();
 
+        Events::resetDropPaths();
         Events::pollEvents();
         window->swapBuffers();
     }
