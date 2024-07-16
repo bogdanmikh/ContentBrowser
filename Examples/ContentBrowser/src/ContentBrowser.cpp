@@ -2,6 +2,8 @@
 #include <imgui.h>
 #include <iostream>
 #include <filesystem>
+#include <sstream>
+#include <string>
 
 namespace fs = std::filesystem;
 

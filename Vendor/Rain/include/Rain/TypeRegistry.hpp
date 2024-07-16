@@ -89,7 +89,7 @@ public:
     }
 
     template<typename T>
-    constexpr TypeInfo makeTypeInfo(TypeId id, const std::string &name) {
+    TypeInfo makeTypeInfo(TypeId id, const std::string &name) {
         // std::cout << "CREATE TYPE INFO: " << name << std::endl;
         TypeInfo info(id, name);
         info.size = sizeof(T);
@@ -121,7 +121,7 @@ public:
     }
 
     template<typename FieldType>
-    constexpr FieldInfo makeFieldInfo(const char *fieldName, uint32_t offset) {
+    FieldInfo makeFieldInfo(const char *fieldName, uint32_t offset) {
         TypeInfo fieldTypeInfo = findOrCreateType<FieldType>();
         TypeId fieldTypeId = fieldTypeInfo.id;
 
