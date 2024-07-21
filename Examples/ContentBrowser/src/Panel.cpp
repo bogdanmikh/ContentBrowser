@@ -5,7 +5,7 @@
 #include <fstream>
 #ifdef PLATFORM_LINUX
 #    include "SystemTools/LinuxTools.hpp"
-#elif PLATFORM_MACOS
+#elif defined(PLATFORM_MACOS)
 #    include "SystemTools/MacOSTools.hpp"
 #elif PLATFORM_WINDOWS
 #    include "SystemTools/WindowsTools.hpp"
@@ -44,7 +44,7 @@ void Panel::start() {
     m_fileIcons.emplace(".html", new Texture("Icons/html.png"));
 #ifdef PLATFORM_LINUX
     m_systemTools = new LinuxTools;
-#elif PLATFORM_MACOS
+#elif defined(PLATFORM_MACOS)
     m_systemTools = new MacOSTools;
 #elif PLATFORM_WINDOWS
     m_systemTools = new WindowsTools;
